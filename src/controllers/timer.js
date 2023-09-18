@@ -56,12 +56,18 @@ module.exports = {
 		
 		fields.push({ name: "Início", value: "```lua\n" + DateTime.fromJSDate(datahora_inicio).toFormat("dd/MM/yyyy HH:mm:ss") + "\n```", inline: true });
 
+		const Interval = luxon.Interval;
+		
+		const formatted = Interval
+			.fromDateTimes(datahora_inicio, datahora_fim)
+			.toDuration()
+			.valueOf();
+		
 		if (datahora_fim) {
 			fields.push({ name: "Fim", value: "```lua\n" + DateTime.fromJSDate(datahora_fim).toFormat("dd/MM/yyyy HH:mm:ss") + "\n```", inline: true });
-			fields.push({ name: "Duração", value: "```lua\n" + Duration.fromObject({ seconds: duracao_segundos }, { locale: "pt-BR" }).toHuman() + "\n```" });
+			fields.push({ name: "Duração", value: "```lua\n" + humanizeDuration(formatted, { language: 'pt' })});
+			fields.push({ name: "Descrição" , value: "```" + descricao + "```" });
 		}
-
-		fields.push({ name: "Descrição" , value: "```" + descricao + "```" });
 
 		embed.setFields(fields);
 
