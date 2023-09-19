@@ -29,6 +29,7 @@ module.exports = {
 			usuario,
 			descricao: motivo,
 			channel_id,
+			datahora_inicio: new Date(),
 		});
 		return away;
 	},
