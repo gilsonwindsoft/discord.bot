@@ -1,6 +1,7 @@
 require("colors");
 
 require("./database").connectDatabase();
+require("./jobs").startJobs();
 
 // Require the necessary discord.js classes
 const { Client, Events, GatewayIntentBits } = require('discord.js');
