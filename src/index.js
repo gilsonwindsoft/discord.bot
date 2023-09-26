@@ -1,7 +1,6 @@
 require("colors");
 
 require("./database").connectDatabase();
-require("./jobs").startJobs();
 
 // Require the necessary discord.js classes
 const { Client, Events, GatewayIntentBits } = require('discord.js');
@@ -24,5 +23,7 @@ client.once(Events.ClientReady, c => {
 
 // Log in to Discord with your client's token
 client.login(token);
+
+require("./jobs").startJobs(client);
 
 module.exports = { client };
