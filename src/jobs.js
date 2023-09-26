@@ -18,10 +18,10 @@ async function notificarTimersAtivos(client) {
   const timersAtivos = await listarTimersAtivos();
   timersAtivos.forEach( async (timer) => {
       const segundos = Math.floor((new Date().getTime() - timer.datahora_inicio) / 1000);
-      if (segundos > 300) {
+      if (segundos > 600) {
         // envia a notificação para o usuário
         const embed = new EmbedBuilder();
-        embed.setTitle("Você tem um timer ativo a mais de 5 minutos!");
+        embed.setTitle("Você tem um timer ativo a mais de 10 minutos!");
         embed.setDescription(timer.descricao);
         embed.setFooter({text: `Timer iniciado em ${DateTime.fromJSDate(timer.datahora_inicio).setZone("America/Sao_Paulo").toFormat("dd/MM/yyyy HH:mm:ss")}`});
         embed.setColor("#0099ff");
