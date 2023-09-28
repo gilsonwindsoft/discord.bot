@@ -5,6 +5,7 @@ const { Interval, DateTime } = require("luxon");
 const { EmbedBuilder } = require("discord.js");
 const humanizeDuration = require("humanize-duration");
 const adminID = '429815677528834048';
+const timezone = 'America/Sao_Paulo';
 
 var cron = require("node-cron");
 
@@ -14,13 +15,23 @@ function startJobs(client) {
   // notifica o usuário do discord quando há um timer ativo a mais de 5 minutos
   // apenas das 7 as 19 horas e nos dias da semana
   cron.schedule("*/5 7-19 * * 1-5", () => {
-    notificarTimersAtivos(client);
-  });
+      notificarTimersAtivos(client);
+    }, 
+    {
+      scheduled: true,
+      timezone: timezone
+    }
+  );
 
   // notifica o usuário do discord todos os dias as 18:30 com o total de tempo dos timers do dia
   cron.schedule("30 18 * * 1-5", () => {
-    notificarTimersDoDia(client);
-  });
+      notificarTimersDoDia(client);
+    }, 
+    {
+      scheduled: true,
+      timezone: timezone
+    }
+  );
 }
 
 async function notificarTimersDoDia(client) {
