@@ -1,6 +1,6 @@
 {
-	"token": "BOT_TOKEN",
-	"database": {
-		"mysqlUrl": "mysql://root@localhost:3306/discord-bot"
-	}
+  "token": "BOT_TOKEN",
+  "database": {
+    "mysqlUrl": "mysql://root@localhost:3306/discord-bot"
+  }
 }
