@@ -1,0 +1,14 @@
+services:
+  discord-bot:
+    build: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DISCORD_TOKEN: ${DISCORD_TOKEN}
+      MYSQL_URL: ${MYSQL_URL}
+    healthcheck:
+      test: ["CMD", "bun", "src/healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s

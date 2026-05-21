@@ -31,4 +31,11 @@ O bot oferece os seguintes comandos:
 
 ## Configuração
 
-As configurações são feitas pelo arquivo `config.json`, para criá-lo, basta copiar o `config.example.json` e renomeá-lo para `config.json`. Depois disso, é só alterar com os dados de seu sistema.
+As configurações são feitas por variáveis de ambiente. Copie o `.env.example` para `.env` em ambiente local ou configure as variáveis diretamente no Coolify:
+
+- `DISCORD_TOKEN`: token do bot no Discord.
+- `MYSQL_URL`: URL de conexão MySQL, por exemplo `mysql://usuario:senha@host:3306/banco`.
+
+## Execução
+
+Instale as dependências com `bun install` e inicie o bot com `bun start`.

@@ -2,7 +2,7 @@ const { REST, Routes, Collection } = require("discord.js");
 const path = require("path");
 const { getFiles } = require("../utils/files");
 const logger = require("../utils/logger");
-const { token } = require("../../config.json");
+const { token } = require("../../config");
 
 module.exports = async (client) => {
   const commandsPath = path.join(__dirname, "../interactions/Command");
