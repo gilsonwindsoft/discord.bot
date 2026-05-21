@@ -13,8 +13,7 @@ module.exports = {
 
     const customId = interaction.customId;
     const parts = customId.split("|");
-    const exceptionClass = parts[1] ?? "";
-    const exceptionMessage = parts[2] ?? "";
+    const bugReportId = parts[1] ?? "";
 
     if (!N8N_WEBHOOK_URL) {
       logger.error("N8N_BUGREPORT_WEBHOOK_URL não configurada.");
@@ -25,8 +24,7 @@ module.exports = {
 
     try {
       const response = await axios.post(N8N_WEBHOOK_URL, {
-        exceptionClass,
-        exceptionMessage,
+        bugReportId
       });
 
       const text = response.data?.output?.[0]?.content?.[0]?.text;
