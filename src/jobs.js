@@ -1,11 +1,12 @@
 const Away = require("./models/ausencia");
+const ReminderController = require("./controllers/reminder");
 const { Op } = require("sequelize");
 const { sequelize } = require("./database");
 const { Interval, DateTime } = require("luxon");
 const { EmbedBuilder } = require("discord.js");
 const humanizeDuration = require("humanize-duration");
-const adminID = '429815677528834048';
-const timezone = 'America/Sao_Paulo';
+const adminID = "429815677528834048";
+const timezone = "America/Sao_Paulo";
 
 var cron = require("node-cron");
 
@@ -14,23 +15,41 @@ exports.startJobs = startJobs;
 function startJobs(client) {
   // notifica o usuário do discord quando há um timer ativo a mais de 5 minutos
   // apenas das 7 as 19 horas e nos dias da semana
-  cron.schedule("*/5 7-19 * * 1-5", () => {
+  cron.schedule(
+    "*/5 7-19 * * 1-5",
+    () => {
       notificarTimersAtivos(client);
-    }, 
+    },
     {
       scheduled: true,
-      timezone: timezone
-    }
+      timezone: timezone,
+    },
   );
 
   // notifica o usuário do discord todos os dias as 18:30 com o total de tempo dos timers do dia
-  cron.schedule("30 18 * * 1-5", () => {
+  cron.schedule(
+    "30 18 * * 1-5",
+    () => {
       notificarTimersDoDia(client);
-    }, 
+    },
     {
       scheduled: true,
-      timezone: timezone
-    }
+      timezone: timezone,
+    },
+  );
+
+  // entrega lembretes vencidos
+  cron.schedule(
+    "* * * * *",
+    () => {
+      ReminderController.entregarVencidos(client).catch((error) => {
+        console.error("Erro ao entregar lembretes:", error);
+      });
+    },
+    {
+      scheduled: true,
+      timezone: timezone,
+    },
   );
 }
 
@@ -55,24 +74,31 @@ async function notificarTimersDoDia(client) {
 
         fields.push({
           name: "Duração",
-          value: "```lua\n" + humanizeDuration(duracao, { language: "pt" }) + "\n```",
+          value:
+            "```lua\n" +
+            humanizeDuration(duracao, { language: "pt" }) +
+            "\n```",
         });
 
-        fields.push({ 
-          name: "Descrição", 
-          value: "```" + timer.descricao + "```" 
+        fields.push({
+          name: "Descrição",
+          value: "```" + timer.descricao + "```",
         });
 
         embed.setFields(fields);
 
-        await user.send({ embeds: [embed] }).catch(error => {
-          console.error(`Não foi possível enviar mensagem para ${user.tag} devido a: ${error}`);
+        await user.send({ embeds: [embed] }).catch((error) => {
+          console.error(
+            `Não foi possível enviar mensagem para ${user.tag} devido a: ${error}`,
+          );
         });
 
         const admin = await getDiscordUserByID(client, adminID);
         if (admin) {
-          await admin.send({ embeds: [embed] }).catch(error => {
-            console.error(`Não foi possível enviar mensagem para ${admin.tag} devido a: ${error}`);
+          await admin.send({ embeds: [embed] }).catch((error) => {
+            console.error(
+              `Não foi possível enviar mensagem para ${admin.tag} devido a: ${error}`,
+            );
           });
         }
       }
@@ -165,7 +191,7 @@ async function listarTimersDoDia() {
           [Op.lte]: todayEnd,
         },
       },
-      group: ["usuario","descricao"],
+      group: ["usuario", "descricao"],
       raw: true, // para obter um output mais limpo
     });
 

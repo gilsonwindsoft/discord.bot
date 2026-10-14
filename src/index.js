@@ -1,6 +1,6 @@
 require("colors");
 
-require("./database").connectDatabase();
+const { connectDatabase } = require("./database");
 
 // Require the necessary discord.js classes
 const { Client, Events, GatewayIntentBits } = require("discord.js");
@@ -21,9 +21,14 @@ client.once(Events.ClientReady, (c) => {
   require("./handlers/buttons");
 });
 
-// Log in to Discord with your client's token
-client.login(token);
-
-require("./jobs").startJobs(client);
-
 module.exports = { client };
+
+// Migrations must finish before the bot touches the database
+(async () => {
+  await connectDatabase();
+
+  // Log in to Discord with your client's token
+  await client.login(token);
+
+  require("./jobs").startJobs(client);
+})();

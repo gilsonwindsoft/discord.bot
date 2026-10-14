@@ -1,22 +1,27 @@
 const { Sequelize } = require("sequelize");
+const { Umzug, SequelizeStorage } = require("umzug");
 const { database } = require("../config");
 const path = require("path");
-const { getFiles } = require("./utils/files");
-const { success, error } = require("./utils/logger");
+const { success, info, error } = require("./utils/logger");
 
 const sequelize = new Sequelize(database.mysqlUrl, { logging: false });
+
+const umzug = new Umzug({
+  migrations: {
+    glob: path.join(__dirname, "migrations/*.js").replace(/\\/g, "/"),
+  },
+  context: sequelize.getQueryInterface(),
+  storage: new SequelizeStorage({ sequelize }),
+  logger: undefined,
+});
 
 async function connectDatabase() {
   try {
     await sequelize.authenticate();
 
-    const filePath = path.join(__dirname, "./models");
-    const files = (await getFiles(filePath)).filter((file) =>
-      file.endsWith(".js"),
-    );
-    for (const file of files) {
-      const model = require(file);
-      model.sync();
+    const executed = await umzug.up();
+    for (const migration of executed) {
+      info(`Migration aplicada: ${migration.name}`);
     }
 
     success("📂 Conectado ao banco de dados");
