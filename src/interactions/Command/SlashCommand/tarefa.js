@@ -7,7 +7,9 @@ const {
 } = require("discord.js");
 
 const TaskController = require("../../../controllers/task");
+const SummaryController = require("../../../controllers/summary");
 const { parseChecklist } = require("../../../utils/checklist");
+const { HORARIOS_PADRAO, validaHorario } = require("../../../utils/quando");
 
 const MODAL_TIMEOUT_MS = 10 * 60 * 1000;
 
@@ -67,6 +69,39 @@ async function adicionar(interaction) {
   });
 }
 
+async function lembretes(interaction) {
+  const usuario_id = interaction.user.id;
+  const posicao = interaction.options.getInteger("horario");
+  const horario = interaction.options.getString("hora")?.trim() ?? null;
+  const ativo = interaction.options.getBoolean("ativo");
+  const altera = horario !== null || ativo !== null;
+
+  if (altera && posicao === null) {
+    return interaction.reply({
+      content: "Informe qual horário alterar na opção `horario`.",
+      ephemeral: true,
+    });
+  }
+  if (horario !== null && !validaHorario(horario)) {
+    return interaction.reply({
+      content: "Horário inválido. Use `HH:mm`, entre 00:00 e 23:59.",
+      ephemeral: true,
+    });
+  }
+
+  if (altera) {
+    await SummaryController.configurarHorario(usuario_id, posicao, {
+      horario,
+      ativo,
+    });
+  }
+
+  return interaction.reply({
+    embeds: [await SummaryController.montarConfiguracao(usuario_id)],
+    ephemeral: true,
+  });
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("tarefa")
@@ -95,6 +130,33 @@ module.exports = {
       sub
         .setName("concluidas")
         .setDescription("Listar suas tarefas concluídas recentemente"),
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName("lembretes")
+        .setDescription("Ver ou configurar os horários do resumo de pendências")
+        .addIntegerOption((option) =>
+          option
+            .setName("horario")
+            .setDescription("Qual horário alterar")
+            .addChoices(
+              ...HORARIOS_PADRAO.map((h) => ({
+                name: h.nome,
+                value: h.posicao,
+              })),
+            ),
+        )
+        .addStringOption((option) =>
+          option
+            .setName("hora")
+            .setDescription("Novo horário no formato HH:mm")
+            .setMaxLength(5),
+        )
+        .addBooleanOption((option) =>
+          option
+            .setName("ativo")
+            .setDescription("Ativar ou desativar o horário"),
+        ),
     ),
   autocomplete: async (interaction) => {
     await interaction.respond(
@@ -110,6 +172,7 @@ module.exports = {
     const usuario_id = interaction.user.id;
 
     if (sub === "adicionar") return adicionar(interaction);
+    if (sub === "lembretes") return lembretes(interaction);
 
     if (sub === "listar") {
       return interaction.reply({

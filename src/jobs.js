@@ -1,5 +1,7 @@
 const Away = require("./models/ausencia");
 const ReminderController = require("./controllers/reminder");
+const SummaryController = require("./controllers/summary");
+const { LUNCH_DESCRIPTION } = require("./controllers/timer");
 const { Op } = require("sequelize");
 const { sequelize } = require("./database");
 const { Interval, DateTime } = require("luxon");
@@ -44,6 +46,20 @@ function startJobs(client) {
     () => {
       ReminderController.entregarVencidos(client).catch((error) => {
         console.error("Erro ao entregar lembretes:", error);
+      });
+    },
+    {
+      scheduled: true,
+      timezone: timezone,
+    },
+  );
+
+  // resumo de pendências (tarefas e lembretes passados) nos horários de cada usuário
+  cron.schedule(
+    "* * * * 1-5",
+    () => {
+      SummaryController.enviarResumos(client).catch((error) => {
+        console.error("Erro ao enviar resumos de pendências:", error);
       });
     },
     {
@@ -158,10 +174,11 @@ async function getDiscordUserByID(client, id) {
 }
 
 async function listarTimersAtivos() {
-  // busca por timers ativos
+  // busca por timers ativos; almoço não recebe lembrete
   const timersAtivos = await Away.findAll({
     where: {
       datahora_fim: null,
+      descricao: { [Op.ne]: LUNCH_DESCRIPTION },
     },
   });
   return timersAtivos;

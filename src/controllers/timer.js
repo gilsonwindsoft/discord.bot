@@ -2,6 +2,12 @@ const { Interval, DateTime } = require("luxon");
 const humanizeDuration = require("humanize-duration");
 const Away = require("../models/ausencia");
 const { EmbedBuilder } = require("discord.js");
+const { Op } = require("sequelize");
+const logger = require("../utils/logger");
+
+const AWAY_ROLE_NAME = "Ausente";
+const AWAY_DESCRIPTION = "Ausente";
+const LUNCH_DESCRIPTION = "Almoço";
 
 const types = {
   AWAY_START: {
@@ -10,6 +16,15 @@ const types = {
   },
   AWAY_FINISH: {
     title: "Ausência finalizada",
+    color: "#57F287",
+  },
+
+  LUNCH_START: {
+    title: "Almoço",
+    color: "#E67E22",
+  },
+  LUNCH_FINISH: {
+    title: "Almoço finalizado",
     color: "#57F287",
   },
 
@@ -24,6 +39,7 @@ const types = {
 };
 
 module.exports = {
+  LUNCH_DESCRIPTION,
   start: async (usuario, motivo, channel_id) => {
     const away = await Away.create({
       usuario,
@@ -47,6 +63,55 @@ module.exports = {
 
     await result.save();
     return result;
+  },
+
+  // Never throws: role failures must not block the absence flow.
+  setAwayRole: async (client, away, ausente) => {
+    try {
+      // Ausência e almoço compartilham o cargo: só remove se nenhum dos dois segue aberto.
+      if (!ausente) {
+        const outrosAbertos = await Away.count({
+          where: {
+            usuario: away.usuario,
+            datahora_fim: null,
+            descricao: { [Op.in]: [AWAY_DESCRIPTION, LUNCH_DESCRIPTION] },
+            id: { [Op.ne]: away.id },
+          },
+        });
+        if (outrosAbertos) return;
+      }
+
+      const guild = client.channels.cache.get(away.channel_id)?.guild;
+      if (!guild) {
+        logger.warn(
+          `Cargo ${AWAY_ROLE_NAME}: servidor do canal ${away.channel_id} não encontrado.`,
+        );
+        return;
+      }
+
+      let role = guild.roles.cache.find((r) => r.name === AWAY_ROLE_NAME);
+      if (!role) {
+        if (!ausente) return;
+        role = await guild.roles.create({
+          name: AWAY_ROLE_NAME,
+          color: "#F1C40F",
+          hoist: true,
+          mentionable: false,
+          permissions: [],
+        });
+      }
+
+      const options = { user: away.usuario, role };
+      if (ausente) await guild.members.addRole(options);
+      else await guild.members.removeRole(options);
+    } catch (e) {
+      logger.error(
+        `Cargo ${AWAY_ROLE_NAME} do usuário ${away.usuario} (${
+          ausente ? "adicionar" : "remover"
+        }) falhou:`,
+        e,
+      );
+    }
   },
 
   buildMessage: (

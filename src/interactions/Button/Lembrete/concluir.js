@@ -19,6 +19,9 @@ module.exports = {
       });
     }
 
+    // Recorrente não muda: continua ativo para a próxima ocorrência.
+    await ReminderController.concluirPassados(lembrete.id, interaction.user.id);
+
     await interaction.update({
       content: "✅ Concluído.",
       components: [],

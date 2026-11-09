@@ -13,6 +13,7 @@ const { sequelize } = require("../database");
 const MAX_EXIBIDAS = 25;
 const MAX_CONCLUIDAS = 10;
 const MAX_POR_GRUPO = 10; // limite do CheckboxGroup do Discord
+const MODAL_TIMEOUT_MS = 10 * 60 * 1000;
 
 function adicionar(usuario_id, tarefas) {
   const agora = new Date();
@@ -92,12 +93,24 @@ async function montarPendentes(usuario_id) {
   };
 }
 
-// Modal com uma caixa por tarefa pendente (as mesmas exibidas na listagem).
+async function usuariosComPendentes() {
+  const linhas = await Tarefa.findAll({
+    attributes: ["usuario_id"],
+    where: { concluida: false },
+    group: ["usuario_id"],
+    raw: true,
+  });
+  return linhas.map((l) => l.usuario_id);
+}
+
+// Modal com uma caixa por item pendente (os mesmos exibidos na listagem).
 // LabelBuilder não tem setter para CheckboxGroup; usa o objeto da API.
-function montarModalMarcar(customId, pendentes) {
-  const modal = new ModalBuilder()
-    .setCustomId(customId)
-    .setTitle("Marcar tarefas concluídas");
+function montarModalMarcar(
+  customId,
+  pendentes,
+  { titulo = "Marcar tarefas concluídas", rotulo = "Tarefas" } = {},
+) {
+  const modal = new ModalBuilder().setCustomId(customId).setTitle(titulo);
 
   for (let i = 0; i < pendentes.length; i += MAX_POR_GRUPO) {
     const grupo = pendentes.slice(i, i + MAX_POR_GRUPO);
@@ -105,8 +118,8 @@ function montarModalMarcar(customId, pendentes) {
       type: ComponentType.Label,
       label:
         pendentes.length > MAX_POR_GRUPO
-          ? `Tarefas ${i + 1}–${i + grupo.length}`
-          : "Tarefas pendentes",
+          ? `${rotulo} ${i + 1}–${i + grupo.length}`
+          : `${rotulo} pendentes`,
       component: {
         type: ComponentType.CheckboxGroup,
         custom_id: `grupo-${i / MAX_POR_GRUPO}`,
@@ -121,6 +134,29 @@ function montarModalMarcar(customId, pendentes) {
     });
   }
   return modal;
+}
+
+// Mostra o modal e espera o envio; retorna { submit, ids } ou null se fechado/expirado.
+async function coletarMarcados(interaction, customId, modal) {
+  await interaction.showModal(modal);
+
+  let submit;
+  try {
+    submit = await interaction.awaitModalSubmit({
+      filter: (i) => i.customId === customId,
+      time: MODAL_TIMEOUT_MS,
+    });
+  } catch {
+    return null;
+  }
+
+  // Grupo sem nenhuma caixa marcada pode não vir no envio.
+  // Collection.flatMap espera Collections; converter para array antes.
+  const ids = [...submit.fields.fields.values()]
+    .filter((field) => field.customId.startsWith("grupo-"))
+    .flatMap((field) => field.values || [])
+    .map(Number);
+  return { submit, ids };
 }
 
 // Sugestões do autocomplete de /tarefa concluir (só pendentes) e /tarefa remover (todas).
@@ -184,7 +220,10 @@ module.exports = {
   adicionar,
   montarPendentes,
   listarPendentes,
+  usuariosComPendentes,
   montarModalMarcar,
+  coletarMarcados,
+  truncar,
   sugerir,
   concluir,
   remover,

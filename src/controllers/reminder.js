@@ -20,6 +20,9 @@ const LOTE_ENTREGA = 100;
 const ADIAR_MINUTOS = 10;
 const ATRASO_TOLERADO_MS = 2 * 60 * 1000;
 
+// Lembrete único já disparado (entregue ou com falha) e ainda não encerrado.
+const PASSADO = { recorrencia: null, status: ["entregue", "falhou"] };
+
 async function criar({
   criador_id,
   destinatario_id,
@@ -109,8 +112,44 @@ async function buscarDoDestinatario(id, usuario_id) {
   return lembrete && lembrete.destinatario_id === usuario_id ? lembrete : null;
 }
 
-// Adiar cria um lembrete único novo; o original (e sua recorrência) não muda.
-function adiar(lembrete) {
+function listarPassados(usuario_id) {
+  return Lembrete.findAll({
+    where: { destinatario_id: usuario_id, ...PASSADO },
+    order: [
+      ["datahora", "ASC"],
+      ["id", "ASC"],
+    ],
+  });
+}
+
+async function destinatariosComPassados() {
+  const linhas = await Lembrete.findAll({
+    attributes: ["destinatario_id"],
+    where: PASSADO,
+    group: ["destinatario_id"],
+    raw: true,
+  });
+  return linhas.map((l) => l.destinatario_id);
+}
+
+// `ids` aceita um id ou uma lista de ids; só conclui lembretes do destinatário.
+async function concluirPassados(ids, usuario_id) {
+  const [afetados] = await Lembrete.update(
+    { status: "concluido" },
+    { where: { id: ids, destinatario_id: usuario_id, ...PASSADO } },
+  );
+  return afetados > 0;
+}
+
+// Adiar cria um lembrete único novo. O original único passa a `adiado` (o novo
+// assume a pendência); o recorrente não muda.
+async function adiar(lembrete) {
+  if (!lembrete.recorrencia) {
+    await Lembrete.update(
+      { status: "adiado" },
+      { where: { id: lembrete.id, ...PASSADO } },
+    );
+  }
   return Lembrete.create({
     criador_id: lembrete.criador_id,
     destinatario_id: lembrete.destinatario_id,
@@ -237,6 +276,9 @@ module.exports = {
   montarListagem,
   descartar,
   buscarDoDestinatario,
+  listarPassados,
+  destinatariosComPassados,
+  concluirPassados,
   adiar,
   entregarVencidos,
 };

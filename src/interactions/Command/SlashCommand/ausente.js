@@ -51,6 +51,7 @@ module.exports = {
       "Ausente",
       interaction.channel.id,
     );
+    await TimerController.setAwayRole(interaction.client, timer, true);
 
     // Enviar mensagem com botão
     const row = new ActionRowBuilder().addComponents(

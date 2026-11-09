@@ -92,6 +92,26 @@ function proximaOcorrencia(datahora, recorrencia, agora = agoraSP()) {
   return dt;
 }
 
+// Horários padrão do resumo de pendências; linhas do usuário sobrescrevem por posição.
+const HORARIOS_PADRAO = [
+  { posicao: 1, nome: "Manhã", horario: "08:00", ativo: true },
+  { posicao: 2, nome: "Tarde", horario: "13:00", ativo: true },
+  { posicao: 3, nome: "Fim do dia", horario: "17:00", ativo: true },
+];
+
+function validaHorario(texto) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(texto ?? ""));
+}
+
+function mesclarHorarios(linhas = []) {
+  return HORARIOS_PADRAO.map((padrao) => {
+    const linha = linhas.find((l) => Number(l.posicao) === padrao.posicao);
+    return linha
+      ? { ...padrao, horario: linha.horario, ativo: Boolean(linha.ativo) }
+      : { ...padrao };
+  });
+}
+
 function formatar(data) {
   const dt = data instanceof Date ? DateTime.fromJSDate(data) : data;
   return dt.setZone(ZONE).toFormat("dd/MM/yyyy HH:mm");
@@ -101,7 +121,11 @@ module.exports = {
   ZONE,
   RECORRENCIAS,
   FORMATOS_AJUDA,
+  HORARIOS_PADRAO,
+  agoraSP,
   parseQuando,
   proximaOcorrencia,
   formatar,
+  validaHorario,
+  mesclarHorarios,
 };

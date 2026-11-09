@@ -30,6 +30,7 @@ module.exports = {
     });
 
     const finalTimer = await TimerController.stop(result.id);
+    await TimerController.setAwayRole(interaction.client, finalTimer, false);
 
     const embed = TimerController.buildMessage(
       "AWAY_FINISH",

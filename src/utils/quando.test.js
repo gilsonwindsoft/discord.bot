@@ -1,6 +1,12 @@
 const { test, expect, describe } = require("bun:test");
 const { DateTime } = require("luxon");
-const { parseQuando, proximaOcorrencia, ZONE } = require("./quando");
+const {
+  parseQuando,
+  proximaOcorrencia,
+  validaHorario,
+  mesclarHorarios,
+  ZONE,
+} = require("./quando");
 
 const at = (iso) => DateTime.fromISO(iso, { zone: ZONE });
 const fmt = (dt) => dt && dt.toFormat("yyyy-MM-dd HH:mm");
@@ -87,5 +93,43 @@ describe("proximaOcorrencia", () => {
         proximaOcorrencia(at("2026-10-14T09:00").toJSDate(), "diario", agora),
       ),
     ).toBe("2026-10-18 09:00");
+  });
+});
+
+describe("validaHorario", () => {
+  test("aceita HH:mm entre 00:00 e 23:59", () => {
+    for (const h of ["00:00", "08:00", "09:30", "23:59"]) {
+      expect(validaHorario(h)).toBe(true);
+    }
+  });
+
+  test("rejeita formatos inválidos", () => {
+    for (const h of ["24:00", "9:30", "ab:cd", "12:60", "", null]) {
+      expect(validaHorario(h)).toBe(false);
+    }
+  });
+});
+
+describe("mesclarHorarios", () => {
+  const resumo = (hs) => hs.map((h) => `${h.posicao} ${h.horario} ${h.ativo}`);
+
+  test("sem linhas usa os padrões", () => {
+    expect(resumo(mesclarHorarios())).toEqual([
+      "1 08:00 true",
+      "2 13:00 true",
+      "3 17:00 true",
+    ]);
+  });
+
+  test("posição desativada e horário alterado", () => {
+    const linhas = [
+      { posicao: 2, horario: "13:00", ativo: false },
+      { posicao: 1, horario: "09:30", ativo: 1 },
+    ];
+    expect(resumo(mesclarHorarios(linhas))).toEqual([
+      "1 09:30 true",
+      "2 13:00 false",
+      "3 17:00 true",
+    ]);
   });
 });
